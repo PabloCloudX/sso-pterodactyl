@@ -1,5 +1,5 @@
 {
-    "name": "wemx/sso-pterodactyl",
+    "name": "pablocloudx/sso-pterodactyl",
     "description": "Allows clients from WemX login to their Pterodactyl account with a single redirect",
     "type": "library",
     "license": "MIT",
