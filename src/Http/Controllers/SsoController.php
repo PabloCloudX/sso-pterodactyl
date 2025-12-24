@@ -38,26 +38,42 @@ class SsoController
      * @return $token
      */
     public function webhook(Request $request)
-    {
-        if(!config('sso-wemx.secret')) {
-            return response(['success' => false, 'message' => 'Please configure a SSO Secret'], 403);
-        }
-
-        if($request->input('sso_secret') !== config('sso-wemx.secret')) {
-            return response(['success' => false, 'message' => 'Please provide valid credentials'], 403);
-        }
-
-        $user = User::findOrFail($request->input('user_id'));
-        if($user['root_admin']) {
-            return response(['success' => false, 'message' => 'You cannot automatically login to admin accounts.'], 501);
-        }
-
-        if($user['2fa']) {
-            return response(['success' => false, 'message' => 'Logging into accounts with 2 Factor Authentication enabled is not supported.'], 501);
-        }
-
-        return response(['success' => true, 'redirect' => route('sso-wemx.login', $this->generateToken($request->input('user_id')))], 200);
+{
+    if (!config('sso-wemx.secret')) {
+        return response(['success' => false, 'message' => 'Please configure a SSO Secret'], 403);
     }
+
+    if ($request->input('sso_secret') !== config('sso-wemx.secret')) {
+        return response(['success' => false, 'message' => 'Please provide valid credentials'], 403);
+    }
+
+    $email = $request->input('email');
+
+    if (!$email) {
+        return response(['success' => false, 'message' => 'Email is required'], 422);
+    }
+
+    // 🔑 CARI USER BERDASARKAN EMAIL
+    $user = User::where('email', $email)->first();
+
+    if (!$user) {
+        return response(['success' => false, 'message' => 'User not found'], 404);
+        // ⬆️ atau auto-create (lihat opsi di bawah)
+    }
+
+    /*if ($user->root_admin) {
+        return response(['success' => false, 'message' => 'You cannot automatically login to admin accounts.'], 501);
+    }*/
+
+    if ($user->use_totp) {
+        return response(['success' => false, 'message' => 'Logging into accounts with 2FA enabled is not supported.'], 501);
+    }
+
+    return response([
+        'success' => true,
+        'redirect' => route('sso-wemx.login', $this->generateToken($user->id))
+    ], 200);
+}
 
     /**
      * Generate a random access token and store the user_id inside
