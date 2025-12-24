@@ -24,7 +24,7 @@ class SsoController
 
         try {
             Auth::loginUsingId($this->getToken($token));
-            $this->invalidateToken($token);
+            //$this->invalidateToken($token);
 
             return redirect()->intended('/');
         } catch(\Exception $error) {
