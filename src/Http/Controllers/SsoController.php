@@ -72,7 +72,7 @@ class SsoController
             'success' => false,
             'message' => 'Admin accounts are not allowed'
         ], 403);
-    }*/
+    }
 
     // 🚫 block 2FA
     if ($user->two_factor_enabled ?? $user->2fa ?? false) {
@@ -80,7 +80,7 @@ class SsoController
             'success' => false,
             'message' => '2FA enabled account not supported'
         ], 403);
-    }
+    }*/
 
     // 🔑 generate token BARU
     $token = $this->generateToken($user->id);
