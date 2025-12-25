@@ -24,7 +24,7 @@ class SsoController
 
         try {
             Auth::loginUsingId($this->getToken($token));
-            //$this->invalidateToken($token);
+            $this->invalidateToken($token);
 
             return redirect()->intended('/');
         } catch(\Exception $error) {
@@ -38,35 +38,26 @@ class SsoController
      * @return $token
      */
     public function webhook(Request $request)
-{
-    if (!config('sso-wemx.secret')) {
-        abort(403, 'SSO secret not configured');
+    {
+        if(!config('sso-wemx.secret')) {
+            return response(['success' => false, 'message' => 'Please configure a SSO Secret'], 403);
+        }
+
+        if($request->input('sso_secret') !== config('sso-wemx.secret')) {
+            return response(['success' => false, 'message' => 'Please provide valid credentials'], 403);
+        }
+
+        $user = User::findOrFail($request->input('user_id'));
+        if($user['root_admin']) {
+            return response(['success' => false, 'message' => 'You cannot automatically login to admin accounts.'], 501);
+        }
+
+        if($user['2fa']) {
+            return response(['success' => false, 'message' => 'Logging into accounts with 2 Factor Authentication enabled is not supported.'], 501);
+        }
+
+        return response(['success' => true, 'redirect' => route('sso-wemx.login', $this->generateToken($request->input('user_id')))], 200);
     }
-
-    if ($request->input('sso_secret') !== config('sso-wemx.secret')) {
-        abort(403, 'Invalid SSO secret');
-    }
-
-    $email = $request->input('email');
-    if (!$email) {
-        abort(422, 'Email is required');
-    }
-
-    $user = User::where('email', $email)->first();
-    if (!$user) {
-        abort(404, 'User not found');
-    }
-
-    if ($user->use_totp) {
-        abort(403, '2FA account not supported');
-    }
-
-    // 🔑 GENERATE TOKEN
-    $token = $this->generateToken($user->id);
-
-    // 🚀 LANGSUNG REDIRECT & LOGIN
-    return redirect()->route('sso-wemx.login', $token);
-}
 
     /**
      * Generate a random access token and store the user_id inside
@@ -75,11 +66,11 @@ class SsoController
      * @return mixed
      */
     protected function generateToken($user_id)
-{
-    $token = 'pabloauth087790423579'; // 🔥 TOKEN CUSTOM
-    Cache::forever($token, $user_id);
-    return $token;
-}
+    {
+        $token = Str::random(config('sso-wemx.token.length', 48));
+        Cache::add($token, $user_id, config('sso-wemx.token.lifetime', 60));
+        return $token;
+    }
 
     /**
      * Returns the value of the token
